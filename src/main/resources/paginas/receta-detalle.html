@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo=${detalle.nombre})}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='recetas')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <span class="eyebrow">Receta</span>
+            <h2 class="mb-1" th:text="${detalle.nombre}">Receta</h2>
+            <p class="text-muted mb-0">
+                Por <strong th:text="${resumen.propia} ? 'ti' : ${detalle.autor.nombre}">Autor</strong>
+                · <i class="bi bi-clock"></i> <span th:text="${detalle.tiempoMinutos} + ' min'">15 min</span>
+                · <span class="stars" th:if="${resumen.promedio != null}">
+                    <i class="bi bi-star-fill"></i> <span th:text="${resumen.promedio}">4.5</span>
+                  </span>
+                <span th:if="${resumen.promedio != null}" th:text="'(' + ${resumen.totalCalificaciones} + ' calificación(es))'">(2)</span>
+                <span th:if="${resumen.promedio == null}">Sin calificaciones</span>
+            </p>
+        </div>
+        <span class="badge rounded-pill fs-6" th:classappend="'badge-estado-' + ${#strings.toLowerCase(resumen.estado)}"
+              th:text="${resumen.estado == 'APROBADA'} ? 'Publicada' : (${resumen.estado == 'PENDIENTE'} ? 'En revisión' : (${resumen.estado == 'RECHAZADA'} ? 'Rechazada' : 'Privada'))">Privada</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card-nubom p-4 mb-4">
+                <p class="mb-0" th:text="${detalle.descripcion}">Descripción</p>
+            </div>
+
+            <div class="card-nubom p-4">
+                <h5 class="mb-3"><i class="bi bi-list-ol me-2"></i>Preparación</h5>
+                <ol class="mb-0 pasos-receta">
+                    <li th:each="paso : ${detalle.listaPasos}" th:text="${paso}">Paso</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="col-lg-5 d-flex flex-column gap-4">
+            <div class="card-nubom p-4">
+                <h5 class="mb-3"><i class="bi bi-basket me-2"></i>Ingredientes</h5>
+
+                <div class="eyebrow">Principales</div>
+                <ul class="list-unstyled mb-3">
+                    <li th:each="i : ${detalle.ingredientes}" th:if="${i.principal}" class="py-1 border-bottom">
+                        <span class="fw-semibold" th:text="${i.nombre}">Ingrediente</span>
+                        <span class="text-muted float-end"
+                              th:text="${#numbers.formatDecimal(i.cantidad, 1, 'COMMA', 2, 'POINT').replace('.00', '')} + ' ' + ${i.unidad}">1 pza</span>
+                    </li>
+                </ul>
+
+                <th:block th:if="${#lists.size(detalle.ingredientes.?[!principal]) > 0}">
+                    <div class="eyebrow">Complementarios</div>
+                    <ul class="list-unstyled mb-0">
+                        <li th:each="i : ${detalle.ingredientes}" th:unless="${i.principal}" class="py-1 border-bottom">
+                            <span th:text="${i.nombre}">Ingrediente</span>
+                            <span class="text-muted float-end"
+                                  th:text="${#numbers.formatDecimal(i.cantidad, 1, 'COMMA', 2, 'POINT').replace('.00', '')} + ' ' + ${i.unidad}">1 pza</span>
+                        </li>
+                    </ul>
+                </th:block>
+            </div>
+
+            <!-- Calificar: solo recetas publicadas de otra persona -->
+            <div class="card-nubom p-4" th:if="${!resumen.propia and resumen.estado == 'APROBADA'}">
+                <h5 class="mb-3"><i class="bi bi-star me-2"></i>Tu calificación</h5>
+                <form method="post" th:action="@{'/recetas/' + ${detalle.idReceta} + '/calificar'}" class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="estrellas-entrada">
+                        <th:block th:each="n : ${#numbers.sequence(5, 1, -1)}">
+                            <input type="radio" name="puntuacion" th:value="${n}" th:id="'estrella' + ${n}"
+                                   th:checked="${miCalificacion == n}" required>
+                            <label th:for="'estrella' + ${n}" th:title="${n} + ' de 5'"><i class="bi bi-star-fill"></i></label>
+                        </th:block>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-nubom"
+                            th:text="${miCalificacion > 0} ? 'Cambiar calificación' : 'Calificar'">Calificar</button>
+                </form>
+                <form method="post" th:action="@{'/recetas/' + ${detalle.idReceta} + '/calificacion/quitar'}"
+                      th:if="${miCalificacion > 0}" class="mt-2">
+                    <button type="submit" class="btn btn-link btn-sm text-muted p-0">Quitar mi calificación</button>
+                </form>
+            </div>
+
+            <!-- Acciones del autor -->
+            <div class="card-nubom p-4" th:if="${resumen.propia}">
+                <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Tu receta</h5>
+                <p class="small text-muted" th:if="${resumen.estado == 'PRIVADA'}">Solo tú puedes verla. Compártela para que la revise un administrador y se publique.</p>
+                <p class="small text-muted" th:if="${resumen.estado == 'PENDIENTE'}">Está en revisión. Se publicará cuando un administrador la apruebe.</p>
+                <p class="small text-muted" th:if="${resumen.estado == 'APROBADA'}">Está publicada. Si la editas, volverá a revisión.</p>
+                <p class="small text-muted" th:if="${resumen.estado == 'RECHAZADA'}">No fue aprobada. Puedes corregirla y volver a compartirla.</p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a th:href="@{'/recetas/' + ${detalle.idReceta} + '/editar'}" class="btn btn-outline-dark">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+                    <form method="post" th:action="@{'/recetas/' + ${detalle.idReceta} + '/compartir'}"
+                          th:if="${resumen.estado == 'PRIVADA' or resumen.estado == 'RECHAZADA'}">
+                        <button type="submit" class="btn btn-nubom"><i class="bi bi-send me-1"></i>Compartir con la comunidad</button>
+                    </form>
+                    <form method="post" th:action="@{'/recetas/' + ${detalle.idReceta} + '/eliminar'}"
+                          onsubmit="return confirm('¿Eliminar esta receta? No se puede deshacer.');">
+                        <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Moderación: solo administrador y solo recetas en revisión -->
+            <div class="card-nubom p-4" sec:authorize="hasRole('ADMIN')" th:if="${resumen.estado == 'PENDIENTE'}">
+                <h5 class="mb-3"><i class="bi bi-shield-check me-2"></i>Moderación</h5>
+                <p class="small text-muted">Esta receta espera tu revisión antes de publicarse.</p>
+                <div class="d-flex gap-2">
+                    <form method="post" th:action="@{'/admin/recetas/' + ${detalle.idReceta} + '/moderar'}">
+                        <input type="hidden" name="aprobar" value="true">
+                        <button type="submit" class="btn btn-nubom"><i class="bi bi-check-lg me-1"></i>Aprobar</button>
+                    </form>
+                    <form method="post" th:action="@{'/admin/recetas/' + ${detalle.idReceta} + '/moderar'}">
+                        <input type="hidden" name="aprobar" value="false">
+                        <button type="submit" class="btn btn-outline-danger"><i class="bi bi-x-lg me-1"></i>Rechazar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a th:href="@{/recetas}" class="d-inline-block mt-4 small">← Volver a recetas</a>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

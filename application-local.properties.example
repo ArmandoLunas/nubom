@@ -1,0 +1,14 @@
+# Copia este archivo como application-local.properties y llena tus valores.
+# Tambien puedes definirlos como variables de entorno con el mismo nombre.
+
+# Contrasena del usuario de MariaDB (el usuario por omision es root; cambialo con NUBOM_DB_USER)
+NUBOM_DB_PASSWORD=tu_contrasena_de_mariadb
+
+# Clave con la que se firman los JWT: 32 bytes o mas, en Base64.
+# Para generar una: openssl rand -base64 32
+NUBOM_JWT_SECRET=pega_aqui_una_clave_en_base64
+
+# Opcional, solo para enviar correos reales de avisos de caducidad
+# NUBOM_MAIL_ENABLED=true
+# NUBOM_MAIL_USER=tu_cuenta@gmail.com
+# NUBOM_MAIL_PASSWORD=tu_contrasena_de_aplicacion

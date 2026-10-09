@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Reportes')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='reportes')}"></nav>
+
+<main class="container my-4">
+
+    <div class="page-header">
+        <span class="eyebrow">Reportes</span>
+        <h2 class="mb-1" th:if="${tieneHogar}" th:text="${hogarActual.nombre}">Hogar</h2>
+        <h2 class="mb-1" th:unless="${tieneHogar}">Reportes</h2>
+        <p class="text-muted mb-0">Cómo está tu inventario hoy y qué conviene usar primero.</p>
+    </div>
+
+    <div class="card-nubom p-5 text-center text-muted mb-4" th:unless="${tieneHogar}">
+        <i class="bi bi-house-heart fs-1 mb-2"></i>
+        <p class="mb-2">Crea tu hogar para ver los reportes de tu inventario.</p>
+        <a th:href="@{/hogar}" class="btn btn-nubom">Ir a Mi hogar</a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- 1. Próximos a caducar -->
+        <div class="col-lg-7" th:if="${tieneHogar}">
+            <div class="card-nubom p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Productos próximos a caducar</h5>
+                    <form method="get" th:action="@{/reportes}" class="d-flex align-items-center gap-2">
+                        <label for="dias" class="small text-muted mb-0">Próximos</label>
+                        <select id="dias" name="dias" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option th:each="d : ${ {3, 7, 15, 30} }" th:value="${d}" th:text="${d} + ' días'"
+                                    th:selected="${d == dias}">7 días</option>
+                        </select>
+                    </form>
+                </div>
+
+                <div class="table-responsive" th:if="${#lists.size(porCaducar) > 0}">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                        <tr class="small text-muted">
+                            <th>Producto</th><th>Ubicación</th><th>Cantidad</th><th>Caduca</th><th>Estado</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${porCaducar}">
+                            <td class="fw-semibold" th:text="${p.nombre}">Producto</td>
+                            <td th:text="${p.inventario}">Refrigerador</td>
+                            <td th:text="${p.cantidad} + ' ' + ${p.unidad}">1 pza</td>
+                            <td th:text="${#temporals.format(p.fechaCaducidad, 'dd/MM/yyyy')}">01/01/2026</td>
+                            <td>
+                                <span class="badge rounded-pill badge-caduca-urgente" th:if="${p.estado == 'VENCIDO'}">Vencido</span>
+                                <span class="badge rounded-pill" th:if="${p.estado != 'VENCIDO'}"
+                                      th:classappend="${p.diasParaCaducar <= 3} ? 'badge-caduca-pronto' : 'badge-caduca-ok'"
+                                      th:text="${p.diasParaCaducar == 0} ? 'Hoy' : (${p.diasParaCaducar} + (${p.diasParaCaducar == 1} ? ' día' : ' días'))">2 días</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mb-0" th:if="${#lists.size(porCaducar) == 0}">
+                    <i class="bi bi-check2-circle me-1"></i>Nada vence en ese periodo.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Nivel de ocupación -->
+        <div class="col-lg-5" th:if="${tieneHogar}">
+            <div class="card-nubom p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-pie-chart me-2"></i>Nivel de ocupación</h5>
+                <div class="mb-4" th:each="o : ${ocupacion}">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold">
+                            <i th:class="${o.inventario == 'Refrigerador'} ? 'bi bi-snow2 me-1' : 'bi bi-basket2 me-1'"></i>
+                            <span th:text="${o.inventario}">Refrigerador</span>
+                        </span>
+                        <span th:text="${o.productos} + ' / ' + ${o.capacidad} + ' · ' + ${o.porcentaje} + '%'">8 / 20 · 40%</span>
+                    </div>
+                    <div class="progress progress-nubom">
+                        <div class="progress-bar" role="progressbar" th:style="'width: ' + ${o.porcentaje} + '%'"
+                             th:classappend="${o.porcentaje >= 90} ? 'barra-llena' : ''"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Productos por categoría -->
+        <div class="col-lg-6" th:if="${tieneHogar}">
+            <div class="card-nubom p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-tags me-2"></i>Productos por categoría</h5>
+                <div class="fila-barra" th:each="c : ${porCategoria}">
+                    <span class="fila-barra-etiqueta" th:text="${c.categoria}">Lácteos</span>
+                    <div class="fila-barra-pista">
+                        <div class="fila-barra-relleno" th:style="'width: ' + ${c.total * 100 / maxCategoria} + '%'"></div>
+                    </div>
+                    <span class="fila-barra-valor" th:text="${c.total}">3</span>
+                </div>
+                <p class="text-muted mb-0" th:if="${#lists.size(porCategoria) == 0}">Aún no hay productos guardados.</p>
+            </div>
+        </div>
+
+        <!-- 4. Recetas mejor calificadas -->
+        <div th:class="${tieneHogar} ? 'col-lg-6' : 'col-12'">
+            <div class="card-nubom p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-star me-2"></i>Recetas mejor calificadas</h5>
+                <ol class="list-group list-group-flush list-group-numbered" th:if="${#lists.size(recetasTop) > 0}">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0" th:each="r : ${recetasTop}">
+                        <div class="ms-2 me-auto">
+                            <a class="fw-semibold text-reset" th:href="@{'/recetas/' + ${r.idReceta}}" th:text="${r.nombre}">Receta</a>
+                            <div class="text-muted small">Por <span th:text="${r.autor}">Autor</span></div>
+                        </div>
+                        <span class="stars text-nowrap">
+                            <i class="bi bi-star-fill"></i> <span th:text="${r.promedio}">4.5</span>
+                            <span class="text-muted small" th:text="'(' + ${r.totalCalificaciones} + ')'">(2)</span>
+                        </span>
+                    </li>
+                </ol>
+                <p class="text-muted mb-0" th:if="${#lists.size(recetasTop) == 0}">Aún no hay recetas calificadas.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

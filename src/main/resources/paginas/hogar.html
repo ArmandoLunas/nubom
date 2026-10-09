@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Hogar')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='hogar')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <!-- ===================== SIN HOGAR: formulario de alta ===================== -->
+    <div th:if="${!tieneHogar}">
+        <div class="page-header">
+            <span class="eyebrow">Bienvenido a NUBOM</span>
+            <h2 class="mb-1">Aún no tienes un hogar</h2>
+            <p class="text-muted mb-0">Crea tu hogar para empezar a llevar el control de tu refrigerador y alacena.</p>
+        </div>
+
+        <div class="card-nubom p-4" style="max-width: 480px;">
+            <form method="post" th:action="@{/hogar/crear}" th:object="${hogarNuevo}">
+                <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger py-2">
+                    <div th:each="err : ${#fields.errors('*')}" th:text="${err}"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="nombreHogar" class="form-label fw-semibold">Nombre de tu hogar</label>
+                    <input type="text" class="form-control" id="nombreHogar" th:field="*{nombre}" placeholder="Ej. Casa Luna">
+                </div>
+                <button type="submit" class="btn btn-nubom w-100">
+                    <i class="bi bi-plus-lg me-1"></i>Crear hogar
+                </button>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>Se crearán automáticamente un Refrigerador y una Alacena para tu hogar.
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================== CON HOGAR: refrigerador / alacena ===================== -->
+    <div th:if="${tieneHogar}">
+
+        <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+            <div>
+                <span class="eyebrow">Mi hogar</span>
+                <h2 class="mb-0"><span th:text="${hogarActual.nombre}">Hogar</span></h2>
+            </div>
+            <a th:href="@{/hogar/administrar}" class="btn btn-outline-dark">
+                <i class="bi bi-gear me-1"></i>Administrar hogar
+            </a>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs-nubom mb-4" id="tabsHogar" role="tablist">
+            <li class="nav-item" th:each="inv, iter : ${inventarios}">
+                <button class="nav-link" th:classappend="${iter.first} ? 'active' : ''"
+                        data-bs-toggle="pill" th:attr="data-bs-target='#tab' + ${inv.idInventario}" type="button">
+                    <i th:class="${inv.nombre == 'Refrigerador'} ? 'bi bi-snow2 me-1' : 'bi bi-basket2 me-1'"></i>
+                    <span th:text="${inv.nombre}">Refrigerador</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade" th:classappend="${iter.first} ? 'show active' : ''"
+                 th:id="'tab' + ${inv.idInventario}" th:each="inv, iter : ${inventarios}"
+                 th:with="productos=${productosPorInventario.get(inv)}, total=${#lists.size(productosPorInventario.get(inv))}">
+
+                <div class="row g-4">
+
+                    <!-- Formulario agregar producto -->
+                    <div class="col-lg-4">
+                        <div class="card-nubom p-4">
+                            <h6 class="text-uppercase small text-muted mb-3" style="letter-spacing:.06em;">Agregar producto</h6>
+
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-muted">Espacio ocupado</span>
+                                    <span th:text="${total} + ' / ' + ${inv.capacidadMaxima}">0 / 20</span>
+                                </div>
+                                <div class="progress progress-nubom">
+                                    <div class="progress-bar" role="progressbar"
+                                         th:style="'width: ' + ${total * 100 / inv.capacidadMaxima} + '%'"></div>
+                                </div>
+                            </div>
+
+                            <form method="post" th:action="@{/hogar/producto/agregar}" class="mt-3 form-producto"
+                                  th:if="${total < inv.capacidadMaxima}">
+                                <input type="hidden" name="idInventario" th:value="${inv.idInventario}">
+
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Código de barras <span class="text-muted fw-normal">(opcional)</span></label>
+                                    <div class="input-group">
+                                        <input type="text" name="codigoBarras" class="form-control" inputmode="numeric"
+                                               pattern="\d{8,13}" placeholder="Ej. 7501055300075">
+                                        <button type="button" class="btn btn-outline-dark btn-buscar-codigo"
+                                                title="Buscar en Open Food Facts">
+                                            <i class="bi bi-upc-scan"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text mensaje-codigo">Búscalo para autocompletar nombre y categoría.</div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Producto</label>
+                                    <input type="text" name="nombre" class="form-control" placeholder="Ej. Leche entera" required>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Cantidad</label>
+                                        <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Unidad</label>
+                                        <select name="unidad" class="form-select">
+                                            <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}">pza</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Categoría</label>
+                                    <select name="categoria" class="form-select">
+                                        <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}">Categoría</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Fecha de caducidad <span class="text-muted fw-normal">(opcional)</span></label>
+                                    <input type="date" name="fechaCaducidad" class="form-control"
+                                           th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                                </div>
+                                <button type="submit" class="btn btn-nubom w-100">
+                                    <i class="bi bi-plus-lg me-1"></i>Agregar
+                                </button>
+                            </form>
+                            <div class="alert alert-warning small mb-0 mt-3" th:unless="${total < inv.capacidadMaxima}">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                <span th:text="${inv.nombre}">Inventario</span> está lleno.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vista gráfica del inventario: se dibuja según su tipo y su estilo -->
+                    <div class="col-lg-8">
+                        <div class="inventario-visual"
+                             th:classappend="'estilo-' + ${inv.estilo ?: 'clasico'} + (${inv.nombre == 'Refrigerador'} ? ' es-refrigerador' : ' es-alacena')">
+                            <div class="inventario-visual-cabecera">
+                                <span>
+                                    <i th:class="${inv.nombre == 'Refrigerador'} ? 'bi bi-snow2 me-1' : 'bi bi-basket2 me-1'"></i>
+                                    <span th:text="${inv.nombre}">Refrigerador</span>
+                                </span>
+                                <span class="small" th:text="${total} + ' de ' + ${inv.capacidadMaxima} + ' espacios'">0 de 20</span>
+                            </div>
+
+                            <div class="inventario-visual-cuerpo">
+                                <div class="row g-3" th:if="${total > 0}">
+                                    <div class="col-md-6" th:each="p : ${productos}">
+                                        <div class="card-nubom card-interactive p-3 h-100 producto-card"
+                                             th:classappend="'caducidad-' + ${#strings.toLowerCase(p.estadoCaducidad)}">
+                                            <div class="d-flex align-items-start justify-content-between">
+                                                <div>
+                                                    <div class="fw-semibold" th:text="${p.nombre}">Producto</div>
+                                                    <div class="text-muted small">
+                                                        <span th:text="${p.cantidad}">1</span> <span th:text="${p.unidad}">pza</span>
+                                                        · <span th:text="${p.categoria}">Categoría</span>
+                                                    </div>
+                                                    <div class="mt-2" th:switch="${p.estadoCaducidad}">
+                                                        <span th:case="'VENCIDO'" class="badge rounded-pill badge-caduca-urgente"
+                                                              th:text="'Venció el ' + ${#temporals.format(p.fechaCaducidad, 'dd/MM')}">Vencido</span>
+                                                        <span th:case="'POR_VENCER'" class="badge rounded-pill badge-caduca-pronto"
+                                                              th:text="${p.diasParaCaducar == 0} ? 'Vence hoy' : (${p.diasParaCaducar == 1} ? 'Vence mañana' : 'Vence en ' + ${p.diasParaCaducar} + ' días')">Por vencer</span>
+                                                        <span th:case="'VIGENTE'" class="badge rounded-pill badge-caduca-ok"
+                                                              th:text="'Vence el ' + ${#temporals.format(p.fechaCaducidad, 'dd/MM/yyyy')}">Vigente</span>
+                                                        <span th:case="*" class="text-muted small">Sin fecha de caducidad</span>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-dark"
+                                                            data-bs-toggle="modal" th:attr="data-bs-target='#modalEditarProducto' + ${p.idProducto}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <form method="post" th:action="@{'/hogar/producto/eliminar/' + ${p.idProducto}}"
+                                                          onsubmit="return confirm('¿Quitar este producto?');">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modal de edicion de este producto -->
+                                        <div class="modal fade" th:id="'modalEditarProducto' + ${p.idProducto}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content modal-nubom">
+                                                    <form method="post" th:action="@{'/hogar/producto/actualizar/' + ${p.idProducto}}">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar producto</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <input type="hidden" name="idInventario" th:value="${inv.idInventario}">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Nombre</label>
+                                                                <input type="text" name="nombre" class="form-control" th:value="${p.nombre}" required>
+                                                            </div>
+                                                            <div class="row g-2 mb-3">
+                                                                <div class="col-6">
+                                                                    <label class="form-label">Cantidad</label>
+                                                                    <input type="number" name="cantidad" class="form-control" th:value="${p.cantidad}" min="1" required>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <label class="form-label">Unidad</label>
+                                                                    <select name="unidad" class="form-select">
+                                                                        <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}"
+                                                                                th:selected="${u == p.unidad}">pza</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Categoría</label>
+                                                                <select name="categoria" class="form-select">
+                                                                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}"
+                                                                            th:selected="${c == p.categoria}">Categoría</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="row g-2 mb-2">
+                                                                <div class="col-6">
+                                                                    <label class="form-label">Fecha de caducidad</label>
+                                                                    <input type="date" name="fechaCaducidad" class="form-control"
+                                                                           th:value="${p.fechaCaducidad}">
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <label class="form-label">Código de barras</label>
+                                                                    <input type="text" name="codigoBarras" class="form-control" inputmode="numeric"
+                                                                           pattern="\d{8,13}" th:value="${p.codigoBarras}">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-nubom">Guardar cambios</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-5 text-center inventario-vacio" th:if="${total == 0}">
+                                    <i class="bi bi-inbox fs-1 mb-2"></i>
+                                    <p class="mb-0">
+                                        Aún no hay productos en <span th:text="${inv.nombre}">este inventario</span>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+
+<script th:inline="javascript">
+    // Autocompletado con Open Food Facts: el servidor hace la consulta y aquí solo
+    // se llenan los campos. Si falla, el formulario se sigue pudiendo capturar a mano.
+    const URL_PRODUCTO_EXTERNO = /*[[@{/hogar/producto/externo}]]*/ '/hogar/producto/externo';
+
+    document.querySelectorAll('.btn-buscar-codigo').forEach(function (boton) {
+        boton.addEventListener('click', async function () {
+            const form = boton.closest('form');
+            const codigo = form.querySelector('[name=codigoBarras]').value.trim();
+            const mensaje = form.querySelector('.mensaje-codigo');
+
+            if (!/^\d{8,13}$/.test(codigo)) {
+                mensaje.textContent = 'Escribe un código de 8 a 13 dígitos.';
+                return;
+            }
+            mensaje.textContent = 'Buscando…';
+            boton.disabled = true;
+            try {
+                const respuesta = await fetch(URL_PRODUCTO_EXTERNO + '?codigo=' + encodeURIComponent(codigo),
+                    {headers: {'Accept': 'application/json'}});
+                const datos = await respuesta.json();
+                if (respuesta.ok) {
+                    form.querySelector('[name=nombre]').value = datos.nombre;
+                    const categoria = form.querySelector('[name=categoria]');
+                    if ([...categoria.options].some(o => o.value === datos.categoria)) {
+                        categoria.value = datos.categoria;
+                    }
+                    mensaje.textContent = 'Datos sugeridos por Open Food Facts. Revísalos antes de guardar.';
+                } else {
+                    mensaje.textContent = datos.mensaje;
+                }
+            } catch (error) {
+                mensaje.textContent = 'No se pudo consultar el código; captura los datos a mano.';
+            } finally {
+                boton.disabled = false;
+            }
+        });
+    });
+</script>
+</body>
+</html>

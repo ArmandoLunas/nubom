@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Recetas')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='recetas')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <span class="eyebrow">Recetas</span>
+            <h2 class="mb-1" th:text="${vista == 'mias'} ? 'Mis recetas' : 'Recetario de la comunidad'">Recetas</h2>
+            <p class="text-muted mb-0" th:if="${vista == 'mias'}">Tus recetas en cualquier estado. Solo las publicadas las ve la comunidad.</p>
+            <p class="text-muted mb-0" th:unless="${vista == 'mias'}">Recetas compartidas por otros usuarios y aprobadas por un administrador.</p>
+        </div>
+        <a th:href="@{/recetas/nueva}" class="btn btn-nubom">
+            <i class="bi bi-plus-lg me-1"></i>Nueva receta
+        </a>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div class="d-flex gap-2">
+            <a th:href="@{/recetas}" class="btn btn-sm rounded-pill"
+               th:classappend="${vista != 'mias'} ? 'btn-dark' : 'btn-outline-secondary'">Comunidad</a>
+            <a th:href="@{/recetas(vista='mias')}" class="btn btn-sm rounded-pill"
+               th:classappend="${vista == 'mias'} ? 'btn-dark' : 'btn-outline-secondary'">Mis recetas</a>
+        </div>
+        <form method="get" th:action="@{/recetas}" class="d-flex gap-2" th:if="${vista != 'mias'}">
+            <input type="search" name="q" class="form-control form-control-sm" th:value="${q}"
+                   placeholder="Buscar por nombre" style="min-width: 220px;">
+            <button type="submit" class="btn btn-sm btn-outline-dark"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+
+    <div class="row g-3" th:if="${#lists.size(recetas) > 0}">
+        <div class="col-md-4" th:each="r : ${recetas}">
+            <div class="card-nubom card-interactive p-3 h-100 d-flex flex-column">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="icon-badge icon-badge-receta"><i class="bi bi-journal-richtext"></i></div>
+                    <div>
+                        <div class="fw-semibold" th:text="${r.nombre}">Receta</div>
+                        <div class="text-muted small">
+                            Por <span th:text="${r.propia} ? 'ti' : ${r.autor}">Autor</span>
+                            · <span th:text="${r.tiempoMinutos} + ' min'">15 min</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="small text-muted mb-3 flex-grow-1" th:text="${r.descripcion}">Descripción</p>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stars" th:if="${r.promedio != null}">
+                        <i class="bi bi-star-fill"></i> <span th:text="${r.promedio}">4.5</span>
+                        <span class="text-muted small" th:text="'(' + ${r.totalCalificaciones} + ')'">(2)</span>
+                    </span>
+                    <span class="text-muted small" th:if="${r.promedio == null}">Sin calificaciones</span>
+                    <span class="badge rounded-pill" th:if="${vista == 'mias'}"
+                          th:classappend="'badge-estado-' + ${#strings.toLowerCase(r.estado)}"
+                          th:text="${r.estado == 'APROBADA'} ? 'Publicada' : (${r.estado == 'PENDIENTE'} ? 'En revisión' : (${r.estado == 'RECHAZADA'} ? 'Rechazada' : 'Privada'))">Privada</span>
+                </div>
+                <a th:href="@{'/recetas/' + ${r.idReceta}}" class="btn btn-sm btn-outline-dark w-100 mt-3">Ver receta</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-nubom p-5 text-center text-muted" th:if="${#lists.size(recetas) == 0}">
+        <i class="bi bi-journal-x fs-1 mb-2"></i>
+        <p class="mb-0" th:if="${vista == 'mias'}">Aún no has creado recetas.</p>
+        <p class="mb-0" th:unless="${vista == 'mias'}">No encontramos recetas publicadas con ese nombre.</p>
+    </div>
+
+    <!-- Paginación del recetario de la comunidad -->
+    <nav class="mt-4" th:if="${vista != 'mias' and totalPaginas != null and totalPaginas > 1}">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${paginaActual == 0} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/recetas(q=${q}, pagina=${paginaActual - 1})}">Anterior</a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}"
+                th:classappend="${i == paginaActual} ? 'active' : ''">
+                <a class="page-link" th:href="@{/recetas(q=${q}, pagina=${i})}" th:text="${i + 1}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${paginaActual >= totalPaginas - 1} ? 'disabled' : ''">
+                <a class="page-link" th:href="@{/recetas(q=${q}, pagina=${paginaActual + 1})}">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

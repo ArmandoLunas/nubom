@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Mi hogar')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='hogar')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <span class="eyebrow">Administración</span>
+            <h2 class="mb-1"><span th:text="${hogarActual.nombre}">Hogar</span></h2>
+            <p class="text-muted mb-0">
+                Creado el <span th:text="${#temporals.format(hogarActual.fechaCreacion, 'dd/MM/yyyy')}">01/01/2026</span>
+                · <span th:text="${hogarActual.totalMiembros}">1</span> miembro(s)
+                · Tu rol: <strong th:text="${hogarActual.rolUsuarioActual}">PROPIETARIO</strong>
+            </p>
+        </div>
+        <a th:href="@{/hogar}" class="btn btn-outline-dark"><i class="bi bi-snow2 me-1"></i>Ver refrigerador y alacena</a>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-6 d-flex flex-column gap-4">
+
+            <!-- Renombrar (solo propietario) -->
+            <div class="card-nubom p-4" th:if="${hogarActual.esPropietario}">
+                <h5 class="mb-3"><i class="bi bi-pencil-square me-2"></i>Renombrar hogar</h5>
+                <form method="post" th:action="@{/hogar/renombrar}" th:object="${hogarEditar}">
+                    <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger py-2">
+                        <div th:each="err : ${#fields.errors('*')}" th:text="${err}"></div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" th:field="*{nombre}">
+                        <button type="submit" class="btn btn-nubom"><i class="bi bi-check-lg"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tamaño y estilo de los inventarios (solo propietario) -->
+            <div class="card-nubom p-4" th:if="${hogarActual.esPropietario}">
+                <h5 class="mb-3"><i class="bi bi-arrows-angle-expand me-2"></i>Tamaño y estilo de mis inventarios</h5>
+                <p class="small text-muted mb-3">Elige cuántos productos caben en cada uno y cómo se ve en pantalla.</p>
+
+                <div class="mb-3 pb-3" th:each="inv, iter : ${inventarios}" th:classappend="${!iter.last} ? ' border-bottom' : ''">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i th:class="${inv.nombre == 'Refrigerador'} ? 'bi bi-snow2' : 'bi bi-basket2'" style="color: var(--nubom-terracota);"></i>
+                            <span class="fw-semibold" th:text="${inv.nombre}">Refrigerador</span>
+                        </div>
+                        <span class="text-muted small" th:text="'Actual: ' + ${inv.capacidadMaxima} + ' espacios'">Actual: 20 espacios</span>
+                    </div>
+
+                    <form method="post" th:action="@{/hogar/inventario/capacidad}" class="d-flex align-items-center gap-3 mb-2">
+                        <input type="hidden" name="idInventario" th:value="${inv.idInventario}">
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="capacidad" th:value="20" th:id="'cap20-' + ${inv.idInventario}"
+                                   th:checked="${inv.capacidadMaxima == 20}" autocomplete="off">
+                            <label class="btn btn-outline-dark btn-sm" th:for="'cap20-' + ${inv.idInventario}">20</label>
+
+                            <input type="radio" class="btn-check" name="capacidad" th:value="40" th:id="'cap40-' + ${inv.idInventario}"
+                                   th:checked="${inv.capacidadMaxima == 40}" autocomplete="off">
+                            <label class="btn btn-outline-dark btn-sm" th:for="'cap40-' + ${inv.idInventario}">40</label>
+
+                            <input type="radio" class="btn-check" name="capacidad" th:value="80" th:id="'cap80-' + ${inv.idInventario}"
+                                   th:checked="${inv.capacidadMaxima == 80}" autocomplete="off">
+                            <label class="btn btn-outline-dark btn-sm" th:for="'cap80-' + ${inv.idInventario}">80</label>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-nubom">Guardar tamaño</button>
+                    </form>
+
+                    <form method="post" th:action="@{/hogar/inventario/estilo}" class="d-flex align-items-center gap-3">
+                        <input type="hidden" name="idInventario" th:value="${inv.idInventario}">
+                        <select name="estilo" class="form-select form-select-sm" style="max-width: 160px;">
+                            <option value="clasico" th:selected="${inv.estilo == 'clasico'}">Clásico</option>
+                            <option value="moderno" th:selected="${inv.estilo == 'moderno'}">Moderno</option>
+                            <option value="retro" th:selected="${inv.estilo == 'retro'}">Retro</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-nubom">Guardar estilo</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Eliminar hogar (solo propietario) -->
+            <div class="card-nubom p-4" th:if="${hogarActual.esPropietario}">
+                <h5 class="mb-3 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar hogar</h5>
+                <p class="small text-muted">Se eliminarán también el refrigerador, la alacena y todos los productos guardados.</p>
+                <form method="post" th:action="@{/hogar/eliminar}"
+                      onsubmit="return confirm('¿Seguro que quieres eliminar este hogar? Esta acción no se puede deshacer.');">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash me-1"></i>Eliminar hogar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-6 d-flex flex-column gap-4">
+
+            <!-- Miembros -->
+            <div class="card-nubom p-4">
+                <h5 class="mb-3"><i class="bi bi-people me-2"></i>Miembros del hogar</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0" th:each="m : ${miembros}">
+                        <div>
+                            <div class="fw-semibold" th:text="${m.nombre}">Nombre</div>
+                            <div class="text-muted small" th:text="${m.correo}">correo</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge rounded-pill" th:classappend="${m.rol == 'PROPIETARIO'} ? 'badge-rol-propietario' : 'badge-rol-familiar'" th:text="${m.rol}">Rol</span>
+                            <form method="post" th:action="@{'/hogar/miembro/quitar/' + ${m.idUsuario}}"
+                                  th:if="${hogarActual.esPropietario and m.rol != 'PROPIETARIO'}"
+                                  onsubmit="return confirm('¿Retirar a esta persona del hogar?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Retirar del hogar">
+                                    <i class="bi bi-person-dash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Agregar integrante (solo propietario) -->
+            <div class="card-nubom p-4" th:if="${hogarActual.esPropietario}">
+                <h5 class="mb-3"><i class="bi bi-person-plus me-2"></i>Agregar a un familiar</h5>
+                <p class="small text-muted">
+                    Escribe el correo con el que la persona se registró en NUBOM. Se unirá con el perfil
+                    <strong>Familiar</strong>: podrá consultar y actualizar el inventario, pero no administrarlo.
+                </p>
+                <form method="post" th:action="@{/hogar/invitar}" class="d-flex gap-2">
+                    <input type="email" name="correoInvitado" class="form-control" placeholder="correo@ejemplo.com" required>
+                    <button type="submit" class="btn btn-nubom"><i class="bi bi-person-check"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

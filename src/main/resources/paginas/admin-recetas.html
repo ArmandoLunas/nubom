@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Moderación de recetas')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='admin')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="page-header">
+        <span class="eyebrow">Administración</span>
+        <h2 class="mb-1">Moderación de recetas</h2>
+        <p class="text-muted mb-0">
+            Recetas que sus autores pidieron compartir. Solo las que apruebes aparecerán en el recetario de la comunidad.
+        </p>
+    </div>
+
+    <div class="card-nubom p-0" th:if="${#lists.size(recetas) > 0}">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex align-items-center justify-content-between flex-wrap gap-3 py-3"
+                th:each="r : ${recetas}">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon-badge icon-badge-receta"><i class="bi bi-journal-richtext"></i></div>
+                    <div>
+                        <a class="fw-semibold text-reset" th:href="@{'/recetas/' + ${r.idReceta}}" th:text="${r.nombre}">Receta</a>
+                        <div class="text-muted small">
+                            Por <span th:text="${r.autor}">Autor</span> · <span th:text="${r.tiempoMinutos} + ' min'">15 min</span>
+                        </div>
+                        <div class="small" th:text="${r.descripcion}">Descripción</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a th:href="@{'/recetas/' + ${r.idReceta}}" class="btn btn-sm btn-outline-dark">Revisar</a>
+                    <form method="post" th:action="@{'/admin/recetas/' + ${r.idReceta} + '/moderar'}">
+                        <input type="hidden" name="aprobar" value="true">
+                        <button type="submit" class="btn btn-sm btn-nubom"><i class="bi bi-check-lg me-1"></i>Aprobar</button>
+                    </form>
+                    <form method="post" th:action="@{'/admin/recetas/' + ${r.idReceta} + '/moderar'}">
+                        <input type="hidden" name="aprobar" value="false">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg me-1"></i>Rechazar</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-nubom p-5 text-center text-muted" th:if="${#lists.size(recetas) == 0}">
+        <i class="bi bi-check2-circle fs-1 mb-2"></i>
+        <p class="mb-0">No hay recetas pendientes de revisión.</p>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

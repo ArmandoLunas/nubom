@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Inicio')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='inicio')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2 class="mb-1">Hola, <span th:text="${nombreUsuario}">Usuario</span></h2>
+            <p class="text-muted mb-0" style="font-size: 18px;" th:if="${tieneHogar}">
+                Bienvenido a <strong th:text="${hogarActual.nombre}">tu hogar</strong>
+                · <span th:text="${totalProductos}">0</span> producto(s) guardado(s)
+            </p>
+            <p class="text-muted mb-0" style="font-size: 18px;" th:unless="${tieneHogar}">
+                Aún no tienes un hogar. <a th:href="@{/hogar}">Crea uno para empezar</a>.
+            </p>
+        </div>
+        <a th:if="${tieneHogar}" th:href="@{/hogar}" class="btn btn-nubom">
+            <i class="bi bi-snow2 me-1"></i>Ver mi refrigerador y alacena
+        </a>
+    </div>
+
+    <!-- Nivel de ocupación -->
+    <div class="row g-3 mb-5" th:if="${tieneHogar}">
+        <div class="col-md-6" th:each="o : ${ocupacion}">
+            <div class="card-nubom p-3 h-100">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="icon-badge" th:classappend="${o.inventario == 'Alacena'} ? ' icon-badge-alacena' : ''">
+                        <i th:class="${o.inventario == 'Refrigerador'} ? 'bi bi-snow2' : 'bi bi-basket2'"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold" th:text="${o.inventario}">Refrigerador</div>
+                        <div class="text-muted small">
+                            <span th:text="${o.productos}">0</span> de <span th:text="${o.capacidad}">20</span> espacios
+                        </div>
+                    </div>
+                    <div class="fw-semibold" th:text="${o.porcentaje} + '%'">40%</div>
+                </div>
+                <div class="progress progress-nubom">
+                    <div class="progress-bar" role="progressbar" th:style="'width: ' + ${o.porcentaje} + '%'"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos por caducar -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 class="mb-0"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Productos próximos a caducar</h4>
+        <a th:href="@{/reportes}" class="small">Ver reportes →</a>
+    </div>
+
+    <div class="row g-3 mb-5" th:if="${#lists.size(productosPorCaducar) > 0}">
+        <div class="col-md-3 col-sm-6" th:each="p : ${productosPorCaducar}">
+            <div class="card-nubom card-interactive p-3 h-100">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="icon-badge" th:classappend="${p.inventario == 'Alacena'} ? ' icon-badge-alacena' : ''">
+                        <i th:class="${p.inventario == 'Refrigerador'} ? 'bi bi-snow2' : 'bi bi-basket2'"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" th:text="${p.nombre}">Producto</div>
+                        <div class="text-muted small" th:text="${p.inventario}">Ubicación</div>
+                    </div>
+                </div>
+                <span class="badge rounded-pill badge-caduca-urgente" th:if="${p.diasParaCaducar < 0}"
+                      th:text="'Venció hace ' + ${-p.diasParaCaducar} + (${p.diasParaCaducar == -1} ? ' día' : ' días')">Venció</span>
+                <span class="badge rounded-pill badge-caduca-urgente" th:if="${p.diasParaCaducar == 0}">Vence hoy</span>
+                <span class="badge rounded-pill"
+                      th:if="${p.diasParaCaducar > 0}"
+                      th:classappend="${p.diasParaCaducar <= 3} ? 'badge-caduca-pronto' : 'badge-caduca-ok'"
+                      th:text="'Vence en ' + ${p.diasParaCaducar} + (${p.diasParaCaducar == 1} ? ' día' : ' días')">
+                    Vence en 2 días
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-nubom p-4 text-center text-muted mb-5" th:if="${#lists.size(productosPorCaducar) == 0}">
+        <i class="bi bi-check2-circle fs-2"></i>
+        <p class="mb-0">Nada por vencer en los próximos días.</p>
+    </div>
+
+    <!-- Recetas mejor calificadas -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 class="mb-0"><i class="bi bi-star-fill stars me-2"></i>Recetas mejor calificadas</h4>
+        <a th:href="@{/recetas}" class="small">Ver todas las recetas →</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4" th:each="r : ${recetasDestacadas}">
+            <a class="card-nubom card-interactive p-3 h-100 d-block text-decoration-none text-reset"
+               th:href="@{'/recetas/' + ${r.idReceta}}">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="icon-badge icon-badge-receta"><i class="bi bi-journal-richtext"></i></div>
+                    <div>
+                        <div class="fw-semibold" th:text="${r.nombre}">Receta</div>
+                        <div class="text-muted small">Por <span th:text="${r.autor}">Autor</span></div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stars"><i class="bi bi-star-fill"></i> <span th:text="${r.promedio}">4.5</span></span>
+                    <span class="text-muted small" th:text="${r.totalCalificaciones} + ' calificación(es)'">2</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

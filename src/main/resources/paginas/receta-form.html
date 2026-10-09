@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Receta')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='recetas')}"></nav>
+
+<main class="container my-4">
+
+    <div class="page-header">
+        <span class="eyebrow">Recetas</span>
+        <h2 class="mb-1" th:text="${idReceta == null} ? 'Nueva receta' : 'Editar receta'">Nueva receta</h2>
+        <p class="text-muted mb-0">Marca como <strong>principal</strong> los ingredientes sin los que la receta no se puede preparar.</p>
+    </div>
+
+    <form method="post" th:object="${receta}" id="formReceta"
+          th:action="${idReceta == null} ? @{/recetas/nueva} : @{'/recetas/' + ${idReceta} + '/editar'}">
+
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger">
+            <div th:each="err : ${#fields.errors('*')}" th:text="${err}"></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card-nubom p-4 h-100">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="nombre">Nombre</label>
+                        <input type="text" class="form-control" id="nombre" th:field="*{nombre}" th:errorclass="is-invalid"
+                               placeholder="Ej. Sopa de verduras">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="descripcion">Descripción</label>
+                        <textarea class="form-control" id="descripcion" rows="2" th:field="*{descripcion}" th:errorclass="is-invalid"
+                                  placeholder="Breve descripción"></textarea>
+                    </div>
+                    <div class="mb-3" style="max-width: 200px;">
+                        <label class="form-label fw-semibold" for="tiempoMinutos">Tiempo (minutos)</label>
+                        <input type="number" class="form-control" id="tiempoMinutos" min="1" th:field="*{tiempoMinutos}" th:errorclass="is-invalid">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold" for="pasos">Pasos de preparación</label>
+                        <textarea class="form-control" id="pasos" rows="7" th:field="*{pasos}" th:errorclass="is-invalid"
+                                  placeholder="Escribe un paso por línea"></textarea>
+                        <div class="form-text">Un paso por línea; se numeran solos.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card-nubom p-4 h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="mb-0"><i class="bi bi-basket me-2"></i>Ingredientes</h5>
+                        <button type="button" class="btn btn-sm btn-outline-dark" id="btnAgregarIngrediente">
+                            <i class="bi bi-plus-lg me-1"></i>Agregar
+                        </button>
+                    </div>
+
+                    <div id="ingredientes">
+                        <div class="fila-ingrediente row g-2 align-items-center mb-2"
+                             th:each="ing, st : *{ingredientes}">
+                            <div class="col-5">
+                                <input type="text" class="form-control form-control-sm" placeholder="Ingrediente"
+                                       th:field="*{ingredientes[__${st.index}__].nombre}">
+                            </div>
+                            <div class="col-2">
+                                <input type="number" step="0.01" min="0" class="form-control form-control-sm" placeholder="Cant."
+                                       th:field="*{ingredientes[__${st.index}__].cantidad}">
+                            </div>
+                            <div class="col-2">
+                                <select class="form-select form-select-sm" th:field="*{ingredientes[__${st.index}__].unidad}">
+                                    <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}">pza</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <label class="form-check mb-0">
+                                    <input type="checkbox" class="form-check-input"
+                                           th:field="*{ingredientes[__${st.index}__].principal}">
+                                    <span class="form-check-label small">Principal</span>
+                                </label>
+                            </div>
+                            <div class="col-1 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-ingrediente" title="Quitar">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">Se necesita al menos un ingrediente principal.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-nubom"><i class="bi bi-check-lg me-1"></i>Guardar receta</button>
+            <a class="btn btn-outline-secondary"
+               th:href="${idReceta == null} ? @{/recetas(vista='mias')} : @{'/recetas/' + ${idReceta}}">Cancelar</a>
+        </div>
+    </form>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+
+<!-- Fila modelo para "Agregar": se clona y se numera en el navegador -->
+<template id="plantillaIngrediente">
+    <div class="fila-ingrediente row g-2 align-items-center mb-2">
+        <div class="col-5">
+            <input type="text" class="form-control form-control-sm" placeholder="Ingrediente" name="ingredientes[0].nombre">
+        </div>
+        <div class="col-2">
+            <input type="number" step="0.01" min="0" class="form-control form-control-sm" placeholder="Cant." name="ingredientes[0].cantidad">
+        </div>
+        <div class="col-2">
+            <select class="form-select form-select-sm" name="ingredientes[0].unidad">
+                <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}">pza</option>
+            </select>
+        </div>
+        <div class="col-2">
+            <label class="form-check mb-0">
+                <input type="checkbox" class="form-check-input" name="ingredientes[0].principal" value="true">
+                <span class="form-check-label small">Principal</span>
+            </label>
+        </div>
+        <div class="col-1 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-ingrediente" title="Quitar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script>
+    (function () {
+        const contenedor = document.getElementById('ingredientes');
+        const plantilla = document.getElementById('plantillaIngrediente');
+
+        // Spring enlaza la lista por índice (ingredientes[0], ingredientes[1]...). Al quitar o
+        // agregar filas se vuelven a numerar para que no queden huecos.
+        function renumerar() {
+            contenedor.querySelectorAll('.fila-ingrediente').forEach(function (fila, indice) {
+                fila.querySelectorAll('[name]').forEach(function (campo) {
+                    campo.name = campo.name.replace(/ingredientes\[\d+\]/, 'ingredientes[' + indice + ']');
+                });
+            });
+        }
+
+        document.getElementById('btnAgregarIngrediente').addEventListener('click', function () {
+            contenedor.appendChild(plantilla.content.cloneNode(true));
+            renumerar();
+            contenedor.lastElementChild.querySelector('input[type=text]').focus();
+        });
+
+        contenedor.addEventListener('click', function (evento) {
+            const boton = evento.target.closest('.btn-quitar-ingrediente');
+            if (boton) {
+                boton.closest('.fila-ingrediente').remove();
+                renumerar();
+            }
+        });
+
+        document.getElementById('formReceta').addEventListener('submit', renumerar);
+    })();
+</script>
+</body>
+</html>

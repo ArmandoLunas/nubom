@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Lista de compras')}"></head>
+<body>
+<nav th:replace="~{plantillas/plantilla :: header(activo='lista-compras')}"></nav>
+
+<main class="container my-4">
+
+    <div th:replace="~{plantillas/plantilla :: mensajes}"></div>
+
+    <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <span class="eyebrow">Lista de compras</span>
+            <h2 class="mb-1" th:if="${tieneHogar}" th:text="${nombreHogarActual}">Hogar</h2>
+            <h2 class="mb-1" th:unless="${tieneHogar}">Lista de compras</h2>
+        </div>
+        <div class="d-flex flex-wrap gap-2" th:if="${tieneHogar}">
+            <!-- Compartir: abre el menú del teléfono (Notas, Keep, WhatsApp...) con la lista como texto -->
+            <button type="button" class="btn btn-outline-dark" id="btnCompartirLista" hidden>
+                <i class="bi bi-share me-1"></i>Compartir
+            </button>
+            <button type="button" class="btn btn-outline-dark" id="btnCopiarLista">
+                <i class="bi bi-clipboard me-1"></i>Copiar lista
+            </button>
+            <button class="btn btn-nubom" data-bs-toggle="modal" data-bs-target="#modalNuevoItem">
+                <i class="bi bi-plus-lg me-1"></i>Agregar producto
+            </button>
+        </div>
+    </div>
+
+    <!-- Sin hogar -->
+    <div class="card-nubom p-5 text-center text-muted" th:unless="${tieneHogar}">
+        <i class="bi bi-house-heart fs-1 mb-2"></i>
+        <p class="mb-2">Primero crea tu hogar para tener una lista de compras.</p>
+        <a th:href="@{/hogar}" class="btn btn-nubom">Ir a Mi hogar</a>
+    </div>
+
+    <!-- Con hogar -->
+    <div th:if="${tieneHogar}">
+        <div class="card-nubom p-0" th:if="${#lists.size(items) > 0}">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center justify-content-between py-3"
+                    th:each="item : ${items}" th:classappend="${item.comprado} ? 'item-comprado' : ''"
+                    th:attr="data-nombre=${item.nombre}, data-cantidad=${item.cantidad}, data-unidad=${item.unidad}, data-comprado=${item.comprado}">
+
+                    <div class="d-flex align-items-center gap-3">
+                        <form method="post" th:action="@{'/lista-compras/comprado/' + ${item.idItem}}">
+                            <input type="hidden" name="comprado" th:value="${!item.comprado}">
+                            <input type="checkbox" class="form-check-input" th:checked="${item.comprado}"
+                                   onchange="this.form.submit()">
+                        </form>
+                        <div>
+                            <div class="fw-semibold" th:text="${item.nombre}">Producto</div>
+                            <div class="text-muted small">
+                                <span th:text="${item.cantidad}">1</span> <span th:text="${item.unidad}">pza</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border" th:text="${item.categoria}">Categoría</span>
+                        <button type="button" class="btn btn-sm btn-outline-dark"
+                                data-bs-toggle="modal" th:attr="data-bs-target='#modalEditarItem' + ${item.idItem}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form method="post" th:action="@{'/lista-compras/eliminar/' + ${item.idItem}}"
+                              onsubmit="return confirm('¿Eliminar este producto de la lista?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-nubom p-5 text-center text-muted" th:if="${#lists.size(items) == 0}">
+            <i class="bi bi-cart fs-1 mb-2"></i>
+            <p class="mb-0">Tu lista de compras está vacía.</p>
+        </div>
+
+        <!-- Modales de edicion, uno por item -->
+        <div class="modal fade" th:each="item : ${items}" th:id="'modalEditarItem' + ${item.idItem}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content modal-nubom">
+                    <form method="post" th:action="@{'/lista-compras/actualizar/' + ${item.idItem}}">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar producto</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" th:value="${item.nombre}" required>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Cantidad</label>
+                                    <input type="number" name="cantidad" class="form-control" th:value="${item.cantidad}" min="1" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Unidad</label>
+                                    <select name="unidad" class="form-select">
+                                        <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}"
+                                                th:selected="${u == item.unidad}">pza</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoria" class="form-select">
+                                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}"
+                                            th:selected="${c == item.categoria}">Categoría</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-nubom">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: nuevo producto -->
+        <div class="modal fade" id="modalNuevoItem" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content modal-nubom">
+                    <form method="post" th:action="@{/lista-compras/agregar}">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-cart-plus me-2"></i>Agregar producto</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" placeholder="Ej. Aguacate" required autofocus>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Cantidad</label>
+                                    <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Unidad</label>
+                                    <select name="unidad" class="form-select">
+                                        <option th:each="u : ${unidades}" th:value="${u}" th:text="${u}">pza</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoria" class="form-select">
+                                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}">Categoría</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-nubom">Agregar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="avisoLista" class="toast align-items-center text-bg-dark border-0" role="status" aria-live="polite">
+        <div class="d-flex">
+            <div class="toast-body" id="avisoListaTexto">Lista copiada</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript" th:if="${tieneHogar}">
+    // Pasa la lista de compras a otra aplicación como texto plano.
+    // "Compartir" usa la Web Share API (menú nativo del teléfono: Notas, Keep, WhatsApp...);
+    // "Copiar lista" es el respaldo para navegadores de escritorio que no la tienen.
+    (function () {
+        const nombreHogar = /*[[${nombreHogarActual}]]*/ 'Mi hogar';
+        const btnCompartir = document.getElementById('btnCompartirLista');
+        const btnCopiar = document.getElementById('btnCopiarLista');
+
+        function textoDeLaLista() {
+            const pendientes = [...document.querySelectorAll('li[data-nombre]')]
+                .filter(li => li.dataset.comprado !== 'true')
+                .map(li => '- ' + li.dataset.cantidad + ' ' + li.dataset.unidad + ' ' + li.dataset.nombre);
+            if (pendientes.length === 0) {
+                return null;
+            }
+            return 'Lista de compras · ' + nombreHogar + '\n' + pendientes.join('\n');
+        }
+
+        function avisar(texto) {
+            document.getElementById('avisoListaTexto').textContent = texto;
+            bootstrap.Toast.getOrCreateInstance(document.getElementById('avisoLista')).show();
+        }
+
+        async function copiar(texto) {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(texto);
+                return;
+            }
+            // Respaldo para contextos sin la API del portapapeles.
+            const area = document.createElement('textarea');
+            area.value = texto;
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            area.remove();
+        }
+
+        if (navigator.share) {
+            btnCompartir.hidden = false;
+            btnCompartir.addEventListener('click', async function () {
+                const texto = textoDeLaLista();
+                if (!texto) {
+                    avisar('No hay productos pendientes por comprar');
+                    return;
+                }
+                try {
+                    await navigator.share({title: 'Lista de compras · ' + nombreHogar, text: texto});
+                } catch (error) {
+                    // El usuario cerró el menú de compartir: no es un error.
+                }
+            });
+        }
+
+        btnCopiar.addEventListener('click', async function () {
+            const texto = textoDeLaLista();
+            if (!texto) {
+                avisar('No hay productos pendientes por comprar');
+                return;
+            }
+            try {
+                await copiar(texto);
+                avisar('Lista copiada: pégala en tu aplicación de notas');
+            } catch (error) {
+                avisar('No se pudo copiar la lista');
+            }
+        });
+    })();
+</script>
+</body>
+</html>

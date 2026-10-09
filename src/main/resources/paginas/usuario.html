@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Mi perfil')}"></head>
+<body>
+<nav th:replace="~{plantillas/plantilla :: header(activo='usuario')}"></nav>
+
+<main class="container my-4">
+
+    <div class="alert alert-success" th:if="${mensajeExito != null}" th:text="${mensajeExito}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError != null}" th:text="${mensajeError}"></div>
+
+    <div class="page-header">
+        <h2 class="mb-1"><i class="bi bi-person-circle me-2"></i>Mi perfil</h2>
+        <p class="text-muted mb-0">
+            Cuenta creada el <span th:text="${#temporals.format(usuarioBd.fechaRegistro, 'dd/MM/yyyy')}">01/01/2026</span>
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Datos personales -->
+        <div class="col-lg-6">
+            <div class="card-nubom p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-pencil-square me-2"></i>Datos personales</h5>
+                <form method="post" th:action="@{/usuario/actualizar}" th:object="${perfil}">
+                    <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger py-2">
+                        <div th:each="err : ${#fields.errors('*')}" th:text="${err}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre</label>
+                        <input type="text" class="form-control" th:field="*{nombre}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Correo</label>
+                        <input type="email" class="form-control" th:value="${usuarioBd.correo}" disabled>
+                        <div class="form-text">El correo no se puede modificar en esta versión.</div>
+                    </div>
+                    <button type="submit" class="btn btn-nubom">Guardar cambios</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cambiar contraseña -->
+        <div class="col-lg-6">
+            <div class="card-nubom p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Cambiar contraseña</h5>
+                <form method="post" th:action="@{/usuario/cambiar-contrasena}" th:object="${cambioContrasena}">
+                    <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger py-2">
+                        <div th:each="err : ${#fields.errors('*')}" th:text="${err}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Contraseña actual</label>
+                        <input type="password" class="form-control" th:field="*{contrasenaActual}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nueva contraseña</label>
+                        <input type="password" class="form-control" th:field="*{contrasenaNueva}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
+                        <input type="password" class="form-control" th:field="*{confirmarContrasenaNueva}">
+                    </div>
+                    <button type="submit" class="btn btn-nubom">Actualizar contraseña</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Eliminar cuenta -->
+        <div class="col-12">
+            <div class="card-nubom p-4">
+                <h5 class="mb-2 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar mi cuenta</h5>
+                <p class="small text-muted mb-3" th:if="${puedeEliminarCuenta}">
+                    Esta acción desactivará tu cuenta y no podrás volver a iniciar sesión con ella.
+                </p>
+                <p class="small text-muted mb-3" th:unless="${puedeEliminarCuenta}">
+                    <i class="bi bi-lock me-1"></i>No puedes eliminar tu cuenta mientras seas <strong>propietario</strong> de un hogar activo.
+                    Elimina o transfiere el hogar primero desde la sección <a th:href="@{/hogar}">Hogar</a>.
+                </p>
+                <form method="post" th:action="@{/usuario/eliminar}"
+                      onsubmit="return confirm('¿Seguro que quieres eliminar tu cuenta?');">
+                    <button type="submit" class="btn btn-outline-danger" th:disabled="${!puedeEliminarCuenta}">
+                        <i class="bi bi-trash me-1"></i>Eliminar mi cuenta
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

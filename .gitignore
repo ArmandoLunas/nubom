@@ -1,0 +1,27 @@
+# Compilación
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Sistema y temporales de Office
+Thumbs.db
+.DS_Store
+~$*
+
+# Respaldos locales (no forman parte del proyecto)
+respaldo-codigo-*.zip
+docs/respaldo/
+
+# Configuración local con credenciales propias
+.env
+application-local.properties
+
+# Scripts locales con los que se armó el documento
+docs/especificacion-fuente/

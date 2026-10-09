@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{plantillas/plantilla :: head(titulo='Avisos')}"></head>
+<body>
+
+<nav th:replace="~{plantillas/plantilla :: header(activo='notificaciones')}"></nav>
+
+<main class="container my-4">
+
+    <div class="page-header d-flex align-items-end justify-content-between flex-wrap gap-3">
+        <div>
+            <span class="eyebrow">Avisos</span>
+            <h2 class="mb-1">Avisos de caducidad</h2>
+            <p class="text-muted mb-0">
+                Cada mañana revisamos tu inventario y te avisamos de lo que vence en los próximos 3 días.
+            </p>
+        </div>
+        <form method="post" th:action="@{/notificaciones/leer-todas}" th:if="${avisosSinLeer > 0}">
+            <button type="submit" class="btn btn-outline-dark"><i class="bi bi-check2-all me-1"></i>Marcar todos como leídos</button>
+        </form>
+    </div>
+
+    <div class="card-nubom p-0" th:if="${#lists.size(avisos) > 0}">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex align-items-center justify-content-between gap-3 py-3"
+                th:each="a : ${avisos}" th:classappend="${a.leida} ? 'aviso-leido' : 'aviso-nuevo'">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon-badge" th:classappend="${a.leida} ? 'icon-badge-leido' : 'icon-badge-receta'">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <div th:classappend="${a.leida} ? '' : 'fw-semibold'" th:text="${a.mensaje}">Aviso</div>
+                        <div class="text-muted small" th:text="${#temporals.format(a.fechaCreacion, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</div>
+                    </div>
+                </div>
+                <form method="post" th:action="@{'/notificaciones/' + ${a.idNotificacion} + '/leida'}" th:unless="${a.leida}">
+                    <button type="submit" class="btn btn-sm btn-outline-dark text-nowrap">Marcar como leído</button>
+                </form>
+                <span class="text-muted small" th:if="${a.leida}"><i class="bi bi-check2"></i> Leído</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-nubom p-5 text-center text-muted" th:if="${#lists.size(avisos) == 0}">
+        <i class="bi bi-bell-slash fs-1 mb-2"></i>
+        <p class="mb-0">No tienes avisos. Te avisaremos cuando algo esté por vencer.</p>
+    </div>
+</main>
+
+<footer th:replace="~{plantillas/plantilla :: footer}"></footer>
+</body>
+</html>

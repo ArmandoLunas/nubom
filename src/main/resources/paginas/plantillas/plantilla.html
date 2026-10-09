@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+
+<head th:fragment="head(titulo)">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${titulo} + ' · NUBOM'">
+        NUBOM
+    </title>
+
+    <!-- Bootstrap -->
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+            rel="stylesheet">
+
+    <!-- Fuentes -->
+    <link
+            href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+            rel="stylesheet">
+
+    <!-- CSS NUBOM -->
+    <link th:href="@{/css/nubom.css}" rel="stylesheet">
+
+</head>
+
+<body>
+
+<!-- ===================================================== -->
+<!-- HEADER / MENÚ -->
+<!-- ===================================================== -->
+
+<nav th:fragment="header(activo)"
+     class="navbar navbar-expand-lg navbar-nubom sticky-top">
+
+    <div class="container-fluid px-4">
+
+        <!-- LOGO -->
+        <a class="navbar-brand"
+           th:href="@{/inicio}">
+            <i class="bi bi-egg-fried me-1"></i>
+            NUBOM
+        </a>
+
+        <!-- BOTÓN RESPONSIVE -->
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navMenu"
+                aria-controls="navMenu"
+                aria-expanded="false"
+                aria-label="Abrir menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- MENÚ -->
+        <div class="collapse navbar-collapse"
+             id="navMenu">
+
+            <!-- MENÚ CENTRAL -->
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'inicio'} ? 'active' : ''"
+                       th:href="@{/inicio}">
+                        Inicio
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'hogar'} ? 'active' : ''"
+                       th:href="@{/hogar}">
+                        Hogar
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'recetas'} ? 'active' : ''"
+                       th:href="@{/recetas}">
+                        Recetas
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'lista-compras'} ? 'active' : ''"
+                       th:href="@{/lista-compras}">
+                        Lista de compras
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'reportes'} ? 'active' : ''"
+                       th:href="@{/reportes}">
+                        Reportes
+                    </a>
+                </li>
+
+                <!-- Solo el administrador ve la bandeja de moderación.
+                     Ocultar el enlace es una ayuda visual: /admin/** se protege en el servidor. -->
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link"
+                       th:classappend="${activo == 'admin'} ? 'active' : ''"
+                       th:href="@{/admin/recetas}">
+                        <i class="bi bi-shield-check me-1"></i>Moderación
+                    </a>
+                </li>
+
+            </ul>
+
+            <!-- AVISOS + USUARIO -->
+            <ul class="navbar-nav">
+
+                <li class="nav-item">
+                    <a class="nav-link campana-navbar"
+                       th:classappend="${activo == 'notificaciones'} ? 'active' : ''"
+                       th:href="@{/notificaciones}"
+                       aria-label="Avisos de caducidad">
+                        <i class="bi bi-bell"></i>
+                        <span class="badge rounded-pill badge-campana"
+                              th:if="${avisosSinLeer > 0}"
+                              th:text="${avisosSinLeer}">3</span>
+                    </a>
+                </li>
+
+                <li class="nav-item dropdown">
+
+                    <a class="nav-link usuario-navbar dropdown-toggle"
+                       role="button"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false">
+
+                        <i class="bi bi-person-circle me-2"></i>
+
+                        <span th:text="${nombreUsuario}">
+                            Usuario
+                        </span>
+
+                    </a>
+
+                    <!-- DROPDOWN -->
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+                            <span class="dropdown-item-text text-muted small"
+                                  th:text="${correoUsuario}">
+                                correo@ejemplo.com
+                            </span>
+                        </li>
+
+                        <li sec:authorize="hasRole('ADMIN')">
+                            <span class="dropdown-item-text small">
+                                <span class="badge badge-rol-propietario">Administrador</span>
+                            </span>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               th:href="@{/usuario}">
+                                <i class="bi bi-person-circle me-2"></i>Mi perfil
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item"
+                               th:href="@{/hogar/administrar}">
+                                <i class="bi bi-house-heart me-2"></i>Mi hogar
+                            </a>
+                        </li>
+
+                        <li>
+                            <!-- El cierre de sesión es un POST con token CSRF (th:action lo agrega). -->
+                            <form method="post" th:action="@{/logout}">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión
+                                </button>
+                            </form>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</nav>
+
+<!-- ===================================================== -->
+<!-- MENSAJES DE CONFIRMACIÓN Y ERROR (flash) -->
+<!-- ===================================================== -->
+
+<div th:fragment="mensajes">
+    <div class="alert alert-success" th:if="${mensajeExito != null}" th:text="${mensajeExito}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError != null}" th:text="${mensajeError}"></div>
+</div>
+
+<!-- ===================================================== -->
+<!-- FOOTER -->
+<!-- ===================================================== -->
+
+<footer th:fragment="footer" class="footer-nubom">
+    <div class="container text-center">
+        <p class="mb-1"><i class="bi bi-egg-fried"></i> <strong>NUBOM</strong> — Ni Un Bocado Menos</p>
+        <p class="mb-0 small">Diplomado Desarrollo de Sistemas con Tecnología Java · DGTIC UNAM</p>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</footer>
+
+</body>
+</html>
